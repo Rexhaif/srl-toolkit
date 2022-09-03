@@ -1,5 +1,4 @@
 import collections
-import multiprocessing.dummy as multiprocessing
 
 import pandas as pd
 
@@ -146,7 +145,7 @@ class FeatureExtractor:
     def __call__(self, sentences):
         self.sentences = sentences
         df = self.to_dataframe(sentences)
-        features = FeatureExtractor._parallelize_dataframe(df, self._all_features)
+        features = FeatureExtractor.process_dataframe(df, self._all_features)
         # features = FeatureExtractor._add_ancestor_features(features, 2,
         #                                                    self.ancestor_categorical_features,
         #                                                    self.ancestor_other_features, sentences)
@@ -368,13 +367,13 @@ class FeatureExtractor:
         return features
 
     @staticmethod
-    def _parallelize_dataframe(df, func):
+    def process_dataframe(df, func):
         num_cores = 8
         num_partitions = num_cores
 
         def iter_by_group(df, column, num_groups):
             groups = []
-            for i, group in df.groupby(column):
+            for _, group in df.groupby(column):
                 groups.append(group)
                 if len(groups) == num_groups:
                     yield pd.concat(groups)
@@ -384,8 +383,5 @@ class FeatureExtractor:
 
         df_split = list(iter_by_group(df, "sentence_id", num_partitions))
 
-        pool = multiprocessing.Pool(num_cores)
-        df = pd.concat(pool.map(func, df_split))
-        pool.close()
-        pool.join()
+        df = pd.concat(map(func, df_split))        
         return df

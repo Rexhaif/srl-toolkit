@@ -432,7 +432,7 @@ class Token:
         return str(self)
 
 
-class UdPredicateArgumentExtractor:
+class PredicateArgumentProcessor:
     def __init__(self, ud_model_path: str, lru_cache_size: int = 10000):
         self.pipeline = PipelineCommon(
             [
