@@ -383,5 +383,5 @@ class FeatureExtractor:
 
         df_split = list(iter_by_group(df, "sentence_id", num_partitions))
 
-        df = pd.concat(map(func, df_split))        
+        df = pd.concat(map(func, df_split))
         return df

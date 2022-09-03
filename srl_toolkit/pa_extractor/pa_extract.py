@@ -3,8 +3,11 @@ from functools import lru_cache
 from isanlp import PipelineCommon
 from isanlp.processor_udpipe import ProcessorUDPipe
 
-from .prep_extract import (complex_preposition_child, get_children,
-                           in_complex_preposition)
+from .prep_extract import (
+    complex_preposition_child,
+    get_children,
+    in_complex_preposition,
+)
 
 
 class PredicateExtractor:

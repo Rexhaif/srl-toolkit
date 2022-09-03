@@ -1,20 +1,18 @@
 from abc import ABC, abstractmethod
-from xxhash import xxh64
+
+from diskcache import Cache
 from isanlp.pipeline_common import PipelineCommon
 from isanlp.processor_udpipe import ProcessorUDPipe
 from isanlp.ru.converter_mystem_to_ud import ConverterMystemToUd
 from isanlp.ru.processor_mystem import ProcessorMystem
-from diskcache import Cache
+from xxhash import xxh64
 
 from .clause_segmenter import ClauseSegmenterProcessor
-from .pa_extractor import PredicateExtractor, ArgumentExtractor
+from .pa_extractor import ArgumentExtractor, PredicateExtractor
 
 
 class CachedExtractor(ABC):
-    def __init__(
-        self,
-        cache_dir: str = "~/.cache/srl_toolkit"
-    ):
+    def __init__(self, cache_dir: str = "~/.cache/srl_toolkit"):
         self.cache = Cache(cache_dir)
 
     @property
@@ -25,7 +23,6 @@ class CachedExtractor(ABC):
     def _extract(self, text: str) -> dict:
         pass
 
-    
     def __call__(self, text: str) -> dict:
         key: str = f"{self.classname}:{text}"
         key: bytes = xxh64(key).digest()
@@ -35,6 +32,7 @@ class CachedExtractor(ABC):
             result = self._extract(text)
             self.cache[key] = result
             return result
+
 
 class ClauseExtractor(CachedExtractor):
     def __init__(
@@ -74,12 +72,11 @@ class ClauseExtractor(CachedExtractor):
 
     def _extract(self, text: str) -> dict:
         result = self.pipeline(text)
-        clauses = [x.text for x in result['clauses']]
+        clauses = [x.text for x in result["clauses"]]
         return {"clauses": clauses}
 
 
 class PredicateArgumentExtractor(CachedExtractor):
-
     def __init__(self, udpipe_path: str, cache_dir: str = "~/.cache/srl_toolkit"):
         super().__init__(cache_dir)
         self.pipeline = PipelineCommon(
@@ -93,7 +90,7 @@ class PredicateArgumentExtractor(CachedExtractor):
                         "postag": "postag",
                         "morph": "morph",
                         "syntax_dep_tree": "syntax_dep_tree",
-                    }
+                    },
                 )
             ]
         )
@@ -118,5 +115,4 @@ class PredicateArgumentExtractor(CachedExtractor):
             arguments = [parse["tokens"][idx].text for idx in arguments]
             result.append({"predicate": predicate, "arguments": arguments})
 
-        return {'predicate_arguments': result}
-
+        return {"predicate_arguments": result}
