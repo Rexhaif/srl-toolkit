@@ -1,5 +1,5 @@
 import collections
-import multiprocessing
+import multiprocessing.dummy as multiprocessing
 
 import pandas as pd
 

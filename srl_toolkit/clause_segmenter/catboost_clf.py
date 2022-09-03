@@ -4,9 +4,9 @@ import catboost
 
 
 class CatBoostClf:
-    def __init__(self, model_dir_path):
+    def __init__(self, model_path: str):
         self._model = catboost.CatBoostClassifier()
-        self._model.load_model(os.path.join(model_dir_path, "catboost_clf_small.pkl"))
+        self._model.load_model(model_path)
         self.DEFAULT_LABEL = 0
 
     def predict(self, features):

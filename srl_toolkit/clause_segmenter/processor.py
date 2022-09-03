@@ -1,9 +1,10 @@
 import conllu
 import numpy as np
-from .catboost_clf import CatBoostClf
-from .feature_extractor import FeatureExtractor
 from isanlp import PipelineCommon
 from isanlp.annotation_rst import DiscourseUnit
+
+from .catboost_clf import CatBoostClf
+from .feature_extractor import FeatureExtractor
 
 
 class AnnotationCONLLConverter:
@@ -103,32 +104,28 @@ class AnnotationCONLLConverter:
 
 
 class ClauseSegmenterProcessor:
-    def __init__(self, model_dir_path):
-        self._model_dir_path = model_dir_path
+    def __init__(self, model_path):
+        self._model_path = model_path
         self._conll_converter = AnnotationCONLLConverter()
         self._feature_extractor = FeatureExtractor()
-        self._model = CatBoostClf(model_dir_path)
+        self._model = CatBoostClf(model_path)
 
     @staticmethod
-    def pipeline(model_path: str):
-        pipeline = PipelineCommon(
+    def for_pipeline(model_path: str):
+        pipeline = (
+            ClauseSegmenterProcessor(model_path=model_path),
             [
-                (
-                    Processor(model_dir_path=model_path),
-                    [
-                        "text",
-                        "tokens",
-                        "sentences",
-                        "lemma",
-                        "morph",
-                        "postag",
-                        "syntax_dep_tree",
-                    ],
-                    {0: "clauses"},
-                )
+                "text",
+                "tokens",
+                "sentences",
+                "lemma",
+                "morph",
+                "postag",
+                "syntax_dep_tree",
             ],
-            name="default",
+            {0: "clauses"},
         )
+
         return pipeline
 
     def __call__(
