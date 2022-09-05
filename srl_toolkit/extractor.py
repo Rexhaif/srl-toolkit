@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from asyncio.log import logger
 
 from diskcache import Cache
 from isanlp.pipeline_common import PipelineCommon
@@ -6,10 +7,14 @@ from isanlp.processor_udpipe import ProcessorUDPipe
 from isanlp.ru.converter_mystem_to_ud import ConverterMystemToUd
 from isanlp.ru.processor_mystem import ProcessorMystem
 from xxhash import xxh64
+import time
+import logging
 
 from .clause_segmenter import ClauseSegmenterProcessor
 from .pa_extractor import ArgumentExtractor, PredicateExtractor
 
+
+logger = logging.getLogger(__name__)
 
 class CachedExtractor(ABC):
     def __init__(self, cache_dir: str = "~/.cache/srl_toolkit"):
@@ -42,7 +47,11 @@ class ClauseExtractor(CachedExtractor):
         cache_dir: str = "~/.cache/srl_toolkit",
     ):
         super().__init__(cache_dir)
+        _t1 = time.time()
         model, inputs, outputs = ClauseSegmenterProcessor.for_pipeline(cb_path)
+        _t2 = time.time() - _t1
+        logger.debug(f"Loaded model for {self.classname} in {_t2:.2f} seconds")
+        _t1 = time.time()
         self.pipeline = PipelineCommon(
             [
                 (
@@ -69,6 +78,8 @@ class ClauseExtractor(CachedExtractor):
                 (model, inputs, outputs),
             ]
         )
+        _t2 = time.time() - _t1
+        logger.debug(f"Loaded pipeline for {self.classname} in {_t2:.2f} seconds")
 
     def _extract(self, text: str) -> dict:
         result = self.pipeline(text)
@@ -79,6 +90,7 @@ class ClauseExtractor(CachedExtractor):
 class PredicateArgumentExtractor(CachedExtractor):
     def __init__(self, udpipe_path: str, cache_dir: str = "~/.cache/srl_toolkit"):
         super().__init__(cache_dir)
+        _t1 = time.time()
         self.pipeline = PipelineCommon(
             [
                 (
@@ -96,6 +108,8 @@ class PredicateArgumentExtractor(CachedExtractor):
         )
         self.predicate_extractor = PredicateExtractor()
         self.argument_extractor = ArgumentExtractor()
+        _t2 = time.time() - _t1
+        logger.debug(f"Loaded pipeline for {self.classname} in {_t2:.2f} seconds")
 
     def _extract(self, text: str) -> dict:
         parse = self.pipeline(text)
@@ -112,7 +126,19 @@ class PredicateArgumentExtractor(CachedExtractor):
                 parse["lemma"][0],
                 parse["syntax_dep_tree"][0],
             )
-            arguments = [parse["tokens"][idx].text for idx in arguments]
-            result.append({"predicate": predicate, "arguments": arguments})
+            arguments = [
+                {
+                    "text": parse["tokens"][idx].text,
+                    "lemma": parse["lemma"][0][idx],
+                    "morph": parse["morph"][0][idx],
+                } for idx in arguments
+            ]
+            predicate_dict = {
+                "text": predicate,
+                "lemma": parse["lemma"][0][position],
+                "morph": parse["morph"][0][position],
+            }
+            result.append({"predicate": predicate_dict, "arguments": arguments})
+            
 
         return {"predicate_arguments": result}
