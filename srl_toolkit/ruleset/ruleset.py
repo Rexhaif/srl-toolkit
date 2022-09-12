@@ -65,7 +65,7 @@ class Ruleset:
     def to_dict(self):
         return {
             "predicate_rule": self.predicate_rule.to_dict(),
-            "argument_rules": {role: x.to_dict() for role, x in self.argument_rules.items()},
+            "argument_rules": {role: [x.to_dict() for x in rule_list] for role, rule_list in self.argument_rules.items()},
         }
 
     @classmethod
