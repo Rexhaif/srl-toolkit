@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from ast import arg
 from asyncio.log import logger
 
 from diskcache import Cache
@@ -10,8 +11,11 @@ from xxhash import xxh64
 import time
 import logging
 
+from srl_toolkit.ruleset import Ruleset, Rule
+
 from .clause_segmenter import ClauseSegmenterProcessor
 from .pa_extractor import ArgumentExtractor, PredicateExtractor
+from rich import inspect
 
 
 logger = logging.getLogger(__name__)
@@ -88,7 +92,7 @@ class ClauseExtractor(CachedExtractor):
 
 
 class PredicateArgumentExtractor(CachedExtractor):
-    def __init__(self, udpipe_path: str, cache_dir: str = "~/.cache/srl_toolkit"):
+    def __init__(self, udpipe_path: str, prepostion_search_radius: int = 3, cache_dir: str = "~/.cache/srl_toolkit"):
         super().__init__(cache_dir)
         _t1 = time.time()
         self.pipeline = PipelineCommon(
@@ -110,6 +114,15 @@ class PredicateArgumentExtractor(CachedExtractor):
         self.argument_extractor = ArgumentExtractor()
         _t2 = time.time() - _t1
         logger.debug(f"Loaded pipeline for {self.classname} in {_t2:.2f} seconds")
+        self.prepostion_search_radius = prepostion_search_radius
+
+    def __get_preposition(self, word_idx: int, tokens, syntax_dep_tree, postag):
+        for i in range(1, self.prepostion_search_radius + 1):
+            if word_idx - i >= 0 \
+                and syntax_dep_tree[word_idx - i].parent == word_idx \
+                and postag[word_idx - i] == "ADP":
+                return tokens[word_idx - i].text.lower()
+        return None
 
     def _extract(self, text: str) -> dict:
         parse = self.pipeline(text)
@@ -126,19 +139,30 @@ class PredicateArgumentExtractor(CachedExtractor):
                 parse["lemma"][0],
                 parse["syntax_dep_tree"][0],
             )
-            arguments = [
-                {
+            _arguments = []
+            for idx in arguments:
+                word = {
                     "text": parse["tokens"][idx].text,
                     "lemma": parse["lemma"][0][idx],
                     "morph": parse["morph"][0][idx],
-                } for idx in arguments
-            ]
+                    "postag": parse["postag"][0][idx],
+                }
+                # search for prepositions
+                word["preposition"] = self.__get_preposition(
+                    idx, parse["tokens"], parse["syntax_dep_tree"][0], parse["postag"][0]
+                )
+
+                _arguments.append(word)
             predicate_dict = {
                 "text": predicate,
                 "lemma": parse["lemma"][0][position],
                 "morph": parse["morph"][0][position],
+                "postag": parse["postag"][0][position],
             }
-            result.append({"predicate": predicate_dict, "arguments": arguments})
+            predicate_dict["preposition"] = self.__get_preposition(
+                position, parse["tokens"], parse["syntax_dep_tree"][0], parse["postag"][0]
+            )
+            result.append({"predicate": predicate_dict, "arguments": _arguments})
             
 
         return {"predicate_arguments": result}
