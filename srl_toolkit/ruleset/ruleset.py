@@ -73,6 +73,6 @@ class Ruleset:
         return cls(
             predicate_rule=Rule(**data["predicate_rule"]),
             argument_rules={
-                role: Rule(**rule) for role, rule in data["argument_rules"].items()
+                role: [Rule(**rule) for rule in rule_list] for role, rule_list in data["argument_rules"].items()
             },
         )
