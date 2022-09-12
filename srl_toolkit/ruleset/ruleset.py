@@ -36,7 +36,7 @@ class Rule:
 
 class Ruleset:
     
-    def __init__(self, predicate_rule: Rule, argument_rules: dict[str, Rule]):
+    def __init__(self, predicate_rule: Rule, argument_rules: dict[str, list[Rule]]):
         self.predicate_rule = predicate_rule
         self.argument_rules = argument_rules
 
@@ -46,13 +46,14 @@ class Ruleset:
         """
         applied = False
         if self.predicate_rule(pa["predicate"]):
-            for role, rule in self.argument_rules.items():
-                for arg in pa["arguments"]:
-                    if rule(arg):
-                        arg["role"] = role
-                        applied = True
-                    else:
-                        arg["role"] = None
+            for role, rules in self.argument_rules.items():
+                for rule in rules:
+                    for arg in pa["arguments"]:
+                        if rule(arg):
+                            arg["role"] = role
+                            applied = True
+                        else:
+                            arg["role"] = None
         return pa, applied
 
     def __repr__(self):
