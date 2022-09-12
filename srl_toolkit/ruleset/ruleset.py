@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 class Rule:
 
     def __init__(self, pattern: dict[str, str]):
