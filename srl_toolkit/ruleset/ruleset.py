@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-class Rule:
 
+class Rule:
     def __init__(self, pattern: dict[str, str]):
         self.pattern = pattern
 
@@ -34,8 +34,8 @@ class Rule:
     def to_dict(self):
         return {"pattern": self.pattern}
 
+
 class Ruleset:
-    
     def __init__(self, predicate_rule: Rule, argument_rules: dict[str, list[Rule]]):
         self.predicate_rule = predicate_rule
         self.argument_rules = argument_rules
@@ -65,7 +65,10 @@ class Ruleset:
     def to_dict(self):
         return {
             "predicate_rule": self.predicate_rule.to_dict(),
-            "argument_rules": {role: [x.to_dict() for x in rule_list] for role, rule_list in self.argument_rules.items()},
+            "argument_rules": {
+                role: [x.to_dict() for x in rule_list]
+                for role, rule_list in self.argument_rules.items()
+            },
         }
 
     @classmethod
@@ -73,6 +76,7 @@ class Ruleset:
         return cls(
             predicate_rule=Rule(**data["predicate_rule"]),
             argument_rules={
-                role: [Rule(**rule) for rule in rule_list] for role, rule_list in data["argument_rules"].items()
+                role: [Rule(**rule) for rule in rule_list]
+                for role, rule_list in data["argument_rules"].items()
             },
         )
